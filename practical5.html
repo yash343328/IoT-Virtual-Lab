@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>P5: IoT Cloud Pipeline | IoT Lab</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#050a12;--panel:#0a1626;--border:#0e3a6e;--glow:#00d4ff;--glow2:#00ff88;--orange:#ff6b35;--text:#cde4f5;--muted:#4a7a9b;--fm:'Share Tech Mono',monospace;--fb:'Exo 2',sans-serif}
+    body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.04)1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.04)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+    nav{position:relative;z-index:10;display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--border)}
+    nav a{color:var(--muted);text-decoration:none;font-family:var(--fm);font-size:12px;letter-spacing:2px;transition:color .2s}
+    nav a:hover{color:var(--glow)} nav span{color:var(--muted)}
+    .page{max-width:1000px;margin:0 auto;padding:30px 20px 60px;position:relative;z-index:10}
+    .pnum{font-family:var(--fm);font-size:11px;color:var(--glow);letter-spacing:4px;margin-bottom:8px}
+    .page-title{font-size:clamp(1.5rem,4vw,2.4rem);font-weight:800;color:#fff}
+    .page-desc{color:var(--muted);font-size:.9rem;margin-top:8px;line-height:1.6;max-width:600px;margin-bottom:24px}
+    .theory-box{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--glow);border-radius:8px;padding:20px;margin-bottom:28px}
+    .theory-box h3{font-family:var(--fm);color:var(--glow);font-size:12px;letter-spacing:3px;margin-bottom:10px}
+    .theory-box p,.theory-box ul{font-size:.85rem;color:var(--muted);line-height:1.7}
+    .theory-box ul{padding-left:18px;margin-top:8px}
+    /* Pipeline Visual */
+    .pipeline{background:#020810;border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:28px}
+    .pipe-title{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:3px;margin-bottom:20px}
+    .pipe-stages{display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center}
+    .pipe-stage{text-align:center;padding:16px 12px;background:var(--panel);border:1px solid var(--border);border-radius:8px;min-width:110px;position:relative;transition:all .3s}
+    .pipe-stage.active{border-color:var(--glow);box-shadow:0 0 15px rgba(0,212,255,.2)}
+    .pipe-stage.done{border-color:var(--glow2);box-shadow:0 0 10px rgba(0,255,136,.1)}
+    .pipe-icon{font-size:1.8rem;display:block;margin-bottom:6px}
+    .pipe-label{font-family:var(--fm);font-size:10px;color:var(--muted);letter-spacing:2px}
+    .pipe-name{font-size:.78rem;font-weight:600;color:#fff;margin-top:3px}
+    .pipe-arrow{font-size:1.4rem;color:var(--border);padding:0 6px;flex-shrink:0}
+    .pipe-arrow.active{color:var(--glow);animation:flow 0.6s infinite}
+    @keyframes flow{0%{opacity:.3;transform:scale(.9)}100%{opacity:1;transform:scale(1)}}
+    /* Data Panel */
+    .data-panel{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+    @media(max-width:600px){.data-panel{grid-template-columns:1fr}}
+    .dp-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
+    .dp-title{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:3px;margin-bottom:12px}
+    .dp-stream{font-family:var(--fm);font-size:11px;background:#020810;border:1px solid var(--border);border-radius:6px;padding:10px;height:140px;overflow-y:auto;line-height:1.9}
+    .s-sensor{color:var(--orange)} .s-proc{color:var(--glow)} .s-cloud{color:var(--glow2)} .s-err{color:#ff3860}
+    /* Charts */
+    .charts-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+    .chart-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+    .ctab{font-family:var(--fm);font-size:11px;padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+    .ctab.active{border-color:var(--glow);color:var(--glow);background:rgba(0,212,255,.1)}
+    canvas.chart{width:100%!important;height:180px!important}
+    /* Summary */
+    .summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+    .sum-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+    .sum-val{font-family:var(--fm);font-size:1.4rem;font-weight:bold;margin-bottom:4px}
+    .sum-label{font-size:.7rem;color:var(--muted);font-family:var(--fm);letter-spacing:2px}
+    .controls{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+    .ctrl-title{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:3px;margin-bottom:14px}
+    .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{font-family:var(--fm);font-size:12px;letter-spacing:2px;padding:10px 20px;border-radius:6px;border:1px solid var(--glow);background:transparent;color:var(--glow);cursor:pointer;transition:all .2s}
+    .btn:hover{background:rgba(0,212,255,.1)}
+    .btn-stop{border-color:#ff3860;color:#ff3860} .btn-stop:hover{background:rgba(255,56,96,.1)}
+    .slider-row{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+    .slider-row label{font-size:.8rem;color:var(--text);display:flex;justify-content:space-between}
+    .slider-row label span{font-family:var(--fm);color:var(--glow)}
+    input[type=range]{width:100%;accent-color:var(--glow)}
+  </style>
+</head>
+<body>
+<nav><a href="index.html">⬅ HOME</a><span>/</span><a href="#">PRACTICAL 05</a></nav>
+<div class="page">
+  <div class="pnum">PRACTICAL // 05</div>
+  <div class="page-title">☁️ IoT Cloud Data Pipeline</div>
+  <div class="page-desc">Sensor se lekar Cloud storage aur analytics tak ka poora data flow dekho. Ye real-world IoT architecture ka simulation hai — data collection, edge processing, cloud upload, aur visualization.</div>
+
+  <div class="theory-box">
+    <h3>📖 THEORY</h3>
+    <p><b>IoT Cloud Pipeline</b> mein sensor data 4 stages se guzarta hai:</p>
+    <ul>
+      <li><b>1. Data Collection:</b> Sensors (temp, humidity, pressure) raw data generate karte hain</li>
+      <li><b>2. Edge Processing:</b> Local microcontroller data filter/validate karta hai — invalid readings hata ta hai</li>
+      <li><b>3. Cloud Upload:</b> Valid data AWS IoT / Azure IoT Hub / Google Cloud pe send hota hai</li>
+      <li><b>4. Analytics & Storage:</b> Time-series DB (InfluxDB, Firebase) mein store hota hai, dashboards update hote hain</li>
+      <li>Protocols used: MQTT, HTTP/REST, WebSockets</li>
+    </ul>
+  </div>
+
+  <!-- PIPELINE VISUAL -->
+  <div class="pipeline">
+    <div class="pipe-title">🔄 DATA PIPELINE — LIVE STATUS</div>
+    <div class="pipe-stages" id="pipeStages">
+      <div class="pipe-stage" id="stage0">
+        <span class="pipe-icon">🌡️</span>
+        <div class="pipe-label">STAGE 1</div>
+        <div class="pipe-name">Sensor Collection</div>
+      </div>
+      <div class="pipe-arrow" id="arr0">→</div>
+      <div class="pipe-stage" id="stage1">
+        <span class="pipe-icon">⚙️</span>
+        <div class="pipe-label">STAGE 2</div>
+        <div class="pipe-name">Edge Processing</div>
+      </div>
+      <div class="pipe-arrow" id="arr1">→</div>
+      <div class="pipe-stage" id="stage2">
+        <span class="pipe-icon">📡</span>
+        <div class="pipe-label">STAGE 3</div>
+        <div class="pipe-name">Cloud Upload</div>
+      </div>
+      <div class="pipe-arrow" id="arr2">→</div>
+      <div class="pipe-stage" id="stage3">
+        <span class="pipe-icon">☁️</span>
+        <div class="pipe-label">STAGE 4</div>
+        <div class="pipe-name">Analytics & Storage</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="summary-grid">
+    <div class="sum-card"><div class="sum-val" id="sumCollected" style="color:var(--orange)">0</div><div class="sum-label">COLLECTED</div></div>
+    <div class="sum-card"><div class="sum-val" id="sumProcessed" style="color:var(--glow)">0</div><div class="sum-label">PROCESSED</div></div>
+    <div class="sum-card"><div class="sum-val" id="sumUploaded" style="color:var(--glow2)">0</div><div class="sum-label">UPLOADED</div></div>
+    <div class="sum-card"><div class="sum-val" id="sumDropped" style="color:#ff3860">0</div><div class="sum-label">DROPPED</div></div>
+    <div class="sum-card"><div class="sum-val" id="sumAvgTemp" style="color:var(--glow)">--</div><div class="sum-label">AVG TEMP</div></div>
+    <div class="sum-card"><div class="sum-val" id="sumLatency" style="color:var(--orange)">--</div><div class="sum-label">LATENCY (ms)</div></div>
+  </div>
+
+  <!-- Data Streams -->
+  <div class="data-panel">
+    <div class="dp-card">
+      <div class="dp-title">📥 RAW SENSOR DATA</div>
+      <div class="dp-stream" id="rawStream">> Waiting for data...</div>
+    </div>
+    <div class="dp-card">
+      <div class="dp-title">☁️ CLOUD EVENTS</div>
+      <div class="dp-stream" id="cloudStream">> Cloud endpoint idle...</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-panel">
+    <div class="dp-title">📊 ANALYTICS DASHBOARD</div>
+    <div class="chart-tabs">
+      <button class="ctab active" onclick="showChart('temp',this)">Temperature</button>
+      <button class="ctab" onclick="showChart('hum',this)">Humidity</button>
+      <button class="ctab" onclick="showChart('pressure',this)">Pressure</button>
+      <button class="ctab" onclick="showChart('pipeline',this)">Pipeline Load</button>
+    </div>
+    <canvas class="chart" id="chartCanvas" height="180"></canvas>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="ctrl-title">⚙️ PIPELINE CONTROLS</div>
+    <div class="slider-row">
+      <label>Data Rate (readings/sec): <span id="rateLabel">1</span></label>
+      <input type="range" id="rateSlider" min="1" max="5" value="1" oninput="document.getElementById('rateLabel').textContent=this.value">
+    </div>
+    <div class="slider-row">
+      <label>Edge Filter Threshold (noise %): <span id="filterLabel">20%</span></label>
+      <input type="range" id="filterSlider" min="0" max="50" value="20" oninput="document.getElementById('filterLabel').textContent=this.value+'%'">
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="startPipeline()">▶ START PIPELINE</button>
+      <button class="btn btn-stop" onclick="stopPipeline()">■ STOP</button>
+      <button class="btn" onclick="resetAll()">↺ RESET</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let timer=null, collected=0, processed=0, uploaded=0, dropped=0;
+  let tempHistory=[], humHistory=[], pressHistory=[], loadHistory=[];
+  let currentChart='temp';
+
+  const stageEls=[0,1,2,3].map(i=>document.getElementById('stage'+i));
+  const arrEls=[0,1,2].map(i=>document.getElementById('arr'+i));
+
+  function setStage(i,state){ // 'idle','active','done'
+    stageEls.forEach(s=>s.classList.remove('active','done'));
+    arrEls.forEach(a=>a.classList.remove('active'));
+    for(let j=0;j<=i;j++) stageEls[j].classList.add(j<i?'done':'active');
+    for(let j=0;j<i;j++) arrEls[j].classList.add('active');
+  }
+
+  function streamLog(el,msg,cls){
+    const s=document.getElementById(el);
+    const span=document.createElement('span');
+    if(cls) span.className=cls;
+    const t=new Date().toLocaleTimeString();
+    span.textContent='['+t+'] '+msg; s.appendChild(document.createElement('br')); s.appendChild(span); s.scrollTop=s.scrollHeight;
+  }
+
+  function drawChart(){
+    const canvas=document.getElementById('chartCanvas');
+    const W=canvas.offsetWidth; const H=180;
+    canvas.width=W; canvas.height=H;
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#020810'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(14,58,110,0.5)'; ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){const y=H*i/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    let data,color,minV,maxV,label;
+    if(currentChart==='temp'){data=tempHistory;color='#00d4ff';minV=0;maxV=80;label='°C';}
+    else if(currentChart==='hum'){data=humHistory;color='#00ff88';minV=0;maxV=100;label='%';}
+    else if(currentChart==='pressure'){data=pressHistory;color='#ff6b35';minV=980;maxV=1040;label='hPa';}
+    else{data=loadHistory;color='#ff6b35';minV=0;maxV=100;label='%';}
+    if(data.length>1){
+      ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2;
+      data.forEach((v,i)=>{
+        const x=W*i/(data.length-1); const y=H-((v-minV)/(maxV-minV))*H;
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+      // fill
+      ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+      ctx.fillStyle=color+'22'; ctx.fill();
+    }
+    if(data.length){
+      ctx.fillStyle=color; ctx.font='11px Share Tech Mono';
+      ctx.fillText('Latest: '+data[data.length-1].toFixed(1)+label, 8, 14);
+    }
+  }
+
+  function showChart(type,btn){
+    currentChart=type;
+    document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    drawChart();
+  }
+
+  async function runCycle(){
+    const filterPct=+document.getElementById('filterSlider').value;
+    // Stage 1: Collect
+    setStage(0);
+    const temp=+(20+Math.random()*40).toFixed(1);
+    const hum=+(30+Math.random()*60).toFixed(0);
+    const pressure=+(995+Math.random()*40).toFixed(1);
+    collected++;
+    document.getElementById('sumCollected').textContent=collected;
+    streamLog('rawStream','Sensor reading: temp='+temp+'°C hum='+hum+'% pres='+pressure+'hPa','s-sensor');
+    tempHistory.push(temp); humHistory.push(hum); pressHistory.push(+pressure);
+    if(tempHistory.length>30){tempHistory.shift();humHistory.shift();pressHistory.shift();}
+    await delay(300);
+    // Stage 2: Edge Processing
+    setStage(1);
+    const noisy=Math.random()*100 < filterPct;
+    if(noisy){
+      dropped++;
+      document.getElementById('sumDropped').textContent=dropped;
+      streamLog('rawStream','⚠ Edge filter: DROPPED (noise detected)','s-err');
+      setStage(0); return;
+    }
+    processed++;
+    document.getElementById('sumProcessed').textContent=processed;
+    streamLog('rawStream','Edge processed: data validated ✓','s-proc');
+    await delay(300);
+    // Stage 3: Upload
+    setStage(2);
+    const latency=Math.floor(50+Math.random()*150);
+    streamLog('cloudStream','POST /api/v1/data → 200 OK ('+latency+'ms)','s-cloud');
+    await delay(300);
+    // Stage 4: Analytics
+    setStage(3);
+    uploaded++;
+    document.getElementById('sumUploaded').textContent=uploaded;
+    const avgTemp=(tempHistory.reduce((a,b)=>a+b,0)/tempHistory.length).toFixed(1);
+    document.getElementById('sumAvgTemp').textContent=avgTemp+'°C';
+    document.getElementById('sumLatency').textContent=latency+'ms';
+    loadHistory.push(Math.floor(40+Math.random()*50));
+    if(loadHistory.length>30) loadHistory.shift();
+    streamLog('cloudStream','Stored in InfluxDB | Analytics updated | Dashboard refreshed','s-cloud');
+    drawChart();
+    await delay(200);
+    stageEls.forEach(s=>s.classList.remove('active','done'));
+    arrEls.forEach(a=>a.classList.remove('active'));
+  }
+
+  function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+  function startPipeline(){
+    if(timer) return;
+    const rate=+document.getElementById('rateSlider').value;
+    const interval=Math.floor(1000/rate);
+    streamLog('rawStream','Pipeline started. Rate='+rate+'/s','s-proc');
+    streamLog('cloudStream','Cloud endpoint ready...','s-cloud');
+    timer=setInterval(()=>runCycle(),Math.max(interval,800));
+    runCycle();
+  }
+  function stopPipeline(){ clearInterval(timer); timer=null; stageEls.forEach(s=>s.classList.remove('active','done')); streamLog('rawStream','Pipeline stopped.','s-err'); }
+  function resetAll(){
+    stopPipeline(); collected=processed=uploaded=dropped=0;
+    tempHistory=[]; humHistory=[]; pressHistory=[]; loadHistory=[];
+    ['sumCollected','sumProcessed','sumUploaded','sumDropped'].forEach(id=>document.getElementById(id).textContent='0');
+    document.getElementById('sumAvgTemp').textContent='--'; document.getElementById('sumLatency').textContent='--';
+    document.getElementById('rawStream').innerHTML='> Pipeline reset.<br>';
+    document.getElementById('cloudStream').innerHTML='> Cloud endpoint idle...<br>';
+    drawChart();
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>P4: GPS Tracker | IoT Lab</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#050a12;--panel:#0a1626;--border:#0e3a6e;--glow:#00d4ff;--glow2:#00ff88;--orange:#ff6b35;--red:#ff3860;--text:#cde4f5;--muted:#4a7a9b;--fm:'Share Tech Mono',monospace;--fb:'Exo 2',sans-serif}
+    body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.04)1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.04)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+    nav{position:relative;z-index:10;display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--border)}
+    nav a{color:var(--muted);text-decoration:none;font-family:var(--fm);font-size:12px;letter-spacing:2px;transition:color .2s}
+    nav a:hover{color:var(--glow)} nav span{color:var(--muted)}
+    .page{max-width:1000px;margin:0 auto;padding:30px 20px 60px;position:relative;z-index:10}
+    .pnum{font-family:var(--fm);font-size:11px;color:var(--glow);letter-spacing:4px;margin-bottom:8px}
+    .page-title{font-size:clamp(1.5rem,4vw,2.4rem);font-weight:800;color:#fff}
+    .page-desc{color:var(--muted);font-size:.9rem;margin-top:8px;line-height:1.6;max-width:600px;margin-bottom:24px}
+    .theory-box{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--glow);border-radius:8px;padding:20px;margin-bottom:28px}
+    .theory-box h3{font-family:var(--fm);color:var(--glow);font-size:12px;letter-spacing:3px;margin-bottom:10px}
+    .theory-box p,.theory-box ul{font-size:.85rem;color:var(--muted);line-height:1.7}
+    .theory-box ul{padding-left:18px;margin-top:8px}
+    /* MAP */
+    .map-container{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+    .map-title{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:3px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+    .map-status{font-size:10px;padding:3px 10px;border-radius:20px;background:rgba(0,255,136,.1);color:var(--glow2);border:1px solid rgba(0,255,136,.3)}
+    .map-wrap{position:relative;background:#020f1a;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+    canvas#mapCanvas{display:block;width:100%;height:360px}
+    .map-legend{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+    .leg-item{display:flex;align-items:center;gap:6px;font-family:var(--fm);font-size:10px;color:var(--muted)}
+    .leg-dot{width:10px;height:10px;border-radius:50%}
+    /* Stats */
+    .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;margin-bottom:20px}
+    .stat-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+    .stat-val{font-family:var(--fm);font-size:1.6rem;font-weight:bold;margin-bottom:4px}
+    .stat-label{font-size:.72rem;color:var(--muted);font-family:var(--fm);letter-spacing:2px}
+    /* Geofence */
+    .fence-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+    .fence-title{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:3px;margin-bottom:14px}
+    .fence-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+    .fence-row input,.fence-row select{background:#020810;border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:var(--fm);font-size:12px;flex:1;min-width:100px}
+    .btn{font-family:var(--fm);font-size:12px;letter-spacing:2px;padding:10px 20px;border-radius:6px;border:1px solid var(--glow);background:transparent;color:var(--glow);cursor:pointer;transition:all .2s}
+    .btn:hover{background:rgba(0,212,255,.1)}
+    .btn-stop{border-color:var(--red);color:var(--red)} .btn-stop:hover{background:rgba(255,56,96,.1)}
+    .controls{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+    .ctrl-title{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:3px;margin-bottom:14px}
+    .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+    .vehicle-sel{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+    .veh-btn{font-family:var(--fm);font-size:11px;padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+    .veh-btn.active{border-color:var(--glow);color:var(--glow);background:rgba(0,212,255,.1)}
+    .log-area{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px}
+    .log-box{font-family:var(--fm);font-size:11px;color:var(--glow2);background:#020810;border:1px solid var(--border);border-radius:6px;padding:12px;height:130px;overflow-y:auto;line-height:1.9}
+    .log-box .log-alert{color:var(--red)} .log-box .log-warn{color:var(--orange)}
+    .alert-banner{display:none;background:rgba(255,56,96,.15);border:1px solid var(--red);border-radius:8px;padding:12px 20px;margin-bottom:16px;font-family:var(--fm);font-size:12px;color:var(--red);animation:flash .5s infinite}
+    @keyframes flash{0%,100%{opacity:1}50%{opacity:.5}}
+  </style>
+</head>
+<body>
+<nav><a href="index.html">⬅ HOME</a><span>/</span><a href="#">PRACTICAL 04</a></nav>
+<div class="page">
+  <div class="pnum">PRACTICAL // 04</div>
+  <div class="page-title">🚗 GPS Location Tracker</div>
+  <div class="page-desc">IoT-based GPS tracking system. Vehicle ki real-time position track karo, speed monitor karo, aur geofence boundary set karo. Bahar jaane pe alert milega.</div>
+
+  <div class="theory-box">
+    <h3>📖 THEORY</h3>
+    <p><b>GPS Tracking</b> mein IoT device (like SIM808 module) vehicle mein laga hota hai jo latitude/longitude data SMS ya MQTT ke through server pe bhejta hai.</p>
+    <ul>
+      <li><b>GPS Module:</b> Satellites se position fix karta hai (lat/lng/altitude)</li>
+      <li><b>Geofence:</b> Virtual boundary — agar vehicle bahar jaaye to alert</li>
+      <li><b>Speed Monitoring:</b> Consecutive coordinates se speed calculate</li>
+      <li><b>Route History:</b> Path ka record — breadcrumb trail</li>
+      <li>Common modules: SIM808, NEO-6M, u-blox GPS</li>
+    </ul>
+  </div>
+
+  <div class="alert-banner" id="alertBanner">⚠ GEOFENCE BREACH DETECTED! Vehicle has left the safe zone!</div>
+
+  <div class="map-container">
+    <div class="map-title">
+      <span>🗺 VEHICLE TRACKING MAP (Simulated)</span>
+      <span class="map-status" id="gpsStatus">● GPS LOCK</span>
+    </div>
+    <div class="map-wrap"><canvas id="mapCanvas"></canvas></div>
+    <div class="map-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#00d4ff"></div>Current Position</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(0,212,255,.3)"></div>Route Trail</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(255,107,53,.4);border:1px dashed #ff6b35"></div>Geofence Zone</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#ff3860"></div>Alert Point</div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="statLat" style="color:var(--glow);font-size:1rem">28.4595</div><div class="stat-label">LATITUDE</div></div>
+    <div class="stat-card"><div class="stat-val" id="statLng" style="color:var(--glow);font-size:1rem">77.0266</div><div class="stat-label">LONGITUDE</div></div>
+    <div class="stat-card"><div class="stat-val" id="statSpeed" style="color:var(--orange)">0</div><div class="stat-label">SPEED (km/h)</div></div>
+    <div class="stat-card"><div class="stat-val" id="statDist" style="color:var(--glow2)">0.0</div><div class="stat-label">DISTANCE (km)</div></div>
+    <div class="stat-card"><div class="stat-val" id="statPoints" style="color:var(--muted)">0</div><div class="stat-label">DATA POINTS</div></div>
+    <div class="stat-card"><div class="stat-val" id="statFence" style="color:var(--glow2)">SAFE</div><div class="stat-label">FENCE STATUS</div></div>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-title">🚗 VEHICLE SELECTION</div>
+    <div class="vehicle-sel">
+      <button class="veh-btn active" onclick="selectVeh(this,'Car')">🚗 Car</button>
+      <button class="veh-btn" onclick="selectVeh(this,'Truck')">🚚 Truck</button>
+      <button class="veh-btn" onclick="selectVeh(this,'Bike')">🏍 Bike</button>
+    </div>
+    <div class="ctrl-title">⚙ CONTROLS</div>
+    <div class="btn-row">
+      <button class="btn" onclick="startTracking()">▶ START TRACKING</button>
+      <button class="btn btn-stop" onclick="stopTracking()">■ STOP</button>
+      <button class="btn" onclick="clearTrail()">↺ CLEAR TRAIL</button>
+    </div>
+  </div>
+
+  <div class="fence-panel">
+    <div class="fence-title">🔴 GEOFENCE SETTINGS</div>
+    <div class="fence-row">
+      <input type="number" id="fenceRadius" value="80" placeholder="Radius (px)"/>
+      <button class="btn" onclick="applyFence()">SET GEOFENCE</button>
+      <button class="btn btn-stop" onclick="clearFence()">REMOVE FENCE</button>
+    </div>
+    <div style="font-family:var(--fm);font-size:11px;color:var(--muted)">Geofence is centered on vehicle's starting position. Set radius in map pixels.</div>
+  </div>
+
+  <div class="log-area">
+    <div style="font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:3px;margin-bottom:12px">📋 GPS LOG</div>
+    <div class="log-box" id="logBox">> GPS module initialized (NEO-6M simulated)<br>> Waiting to start tracking...</div>
+  </div>
+</div>
+
+<script>
+  const canvas=document.getElementById('mapCanvas');
+  const ctx=canvas.getContext('2d');
+  let trail=[], timer=null, vehName='Car';
+  let px=0, py=0, startPx=0, startPy=0;
+  let angle=Math.random()*Math.PI*2;
+  let fenceRadius=0, fenceActive=false;
+  let totalDist=0, lastPx=null, lastPy=null;
+  let insideFence=true;
+
+  function resize(){
+    canvas.width=canvas.offsetWidth;
+    canvas.height=360;
+    if(!px) { px=canvas.width/2; py=canvas.height/2; startPx=px; startPy=py; }
+    draw();
+  }
+
+  function drawGrid(){
+    ctx.strokeStyle='rgba(14,58,110,0.4)'; ctx.lineWidth=1;
+    for(let x=0;x<canvas.width;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
+    for(let y=0;y<canvas.height;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#020f1a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    drawGrid();
+    // Geofence
+    if(fenceActive){
+      ctx.beginPath(); ctx.arc(startPx,startPy,fenceRadius,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,107,53,0.07)'; ctx.fill();
+      ctx.strokeStyle='rgba(255,107,53,0.6)'; ctx.lineWidth=2; ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
+    }
+    // Trail
+    if(trail.length>1){
+      ctx.beginPath(); ctx.moveTo(trail[0].x,trail[0].y);
+      trail.forEach(p=>ctx.lineTo(p.x,p.y));
+      ctx.strokeStyle='rgba(0,212,255,0.4)'; ctx.lineWidth=2; ctx.stroke();
+    }
+    // Dots
+    trail.forEach((p,i)=>{
+      if(i===trail.length-1) return;
+      ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,212,255,0.25)'; ctx.fill();
+    });
+    // Vehicle
+    ctx.save(); ctx.translate(px,py); ctx.rotate(angle);
+    ctx.fillStyle='#00d4ff';
+    ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(8,8); ctx.lineTo(0,4); ctx.lineTo(-8,8); ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    // Pulse
+    ctx.beginPath(); ctx.arc(px,py,16,0,Math.PI*2);
+    ctx.strokeStyle='rgba(0,212,255,0.3)'; ctx.lineWidth=1; ctx.stroke();
+  }
+
+  function tick(){
+    angle+=((Math.random()-0.5)*0.4);
+    const speed=2+Math.random()*3;
+    const nx=px+Math.cos(angle)*speed;
+    const ny=py+Math.sin(angle)*speed;
+    // Bounce off walls
+    if(nx<20||nx>canvas.width-20) angle=Math.PI-angle;
+    if(ny<20||ny>canvas.height-20) angle=-angle;
+    px=Math.max(20,Math.min(canvas.width-20,nx));
+    py=Math.max(20,Math.min(canvas.height-20,ny));
+    trail.push({x:px,y:py});
+    if(trail.length>80) trail.shift();
+    // Distance
+    if(lastPx!==null){
+      const d=Math.sqrt((px-lastPx)**2+(py-lastPy)**2)*0.01;
+      totalDist+=d;
+    }
+    lastPx=px; lastPy=py;
+    // Fake lat/lng
+    const lat=(28.4595+(py-canvas.height/2)*0.0003).toFixed(6);
+    const lng=(77.0266+(px-canvas.width/2)*0.0003).toFixed(6);
+    const spd=Math.floor(speed*10);
+    document.getElementById('statLat').textContent=lat;
+    document.getElementById('statLng').textContent=lng;
+    document.getElementById('statSpeed').textContent=spd;
+    document.getElementById('statDist').textContent=totalDist.toFixed(2);
+    document.getElementById('statPoints').textContent=trail.length;
+    // Geofence check
+    if(fenceActive){
+      const d=Math.sqrt((px-startPx)**2+(py-startPy)**2);
+      const inFence=d<=fenceRadius;
+      if(!inFence && insideFence){
+        insideFence=false;
+        document.getElementById('alertBanner').style.display='block';
+        document.getElementById('statFence').textContent='BREACH!';
+        document.getElementById('statFence').style.color='var(--red)';
+        addLog('⚠ GEOFENCE BREACH! Vehicle outside safe zone at lat='+lat+' lng='+lng,'alert');
+      } else if(inFence && !insideFence){
+        insideFence=true;
+        document.getElementById('alertBanner').style.display='none';
+        document.getElementById('statFence').textContent='SAFE';
+        document.getElementById('statFence').style.color='var(--glow2)';
+        addLog('✓ Vehicle returned inside geofence');
+      }
+    }
+    if(trail.length%10===0) addLog('GPS: lat='+lat+' lng='+lng+' speed='+spd+'km/h');
+    draw();
+  }
+
+  function startTracking(){
+    if(timer) return;
+    addLog('Tracking started for: '+vehName);
+    timer=setInterval(tick,600);
+  }
+  function stopTracking(){ clearInterval(timer); timer=null; addLog('Tracking stopped.','warn'); }
+  function clearTrail(){ trail=[]; totalDist=0; lastPx=null; lastPy=null; draw(); }
+  function applyFence(){
+    fenceRadius=+document.getElementById('fenceRadius').value||80;
+    startPx=px; startPy=py;
+    fenceActive=true; insideFence=true;
+    document.getElementById('alertBanner').style.display='none';
+    addLog('Geofence set: radius='+fenceRadius+'px center=('+px.toFixed(0)+','+py.toFixed(0)+')');
+    draw();
+  }
+  function clearFence(){ fenceActive=false; document.getElementById('alertBanner').style.display='none'; document.getElementById('statFence').textContent='N/A'; draw(); }
+  function selectVeh(btn,name){ document.querySelectorAll('.veh-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); vehName=name; }
+
+  function addLog(msg,type=''){
+    const b=document.getElementById('logBox');
+    const t=new Date().toLocaleTimeString();
+    const el=document.createElement('span');
+    if(type) el.className='log-'+type;
+    el.textContent='['+t+'] '+msg; b.appendChild(document.createElement('br')); b.appendChild(el); b.scrollTop=b.scrollHeight;
+  }
+
+  window.addEventListener('resize',resize);
+  resize();
+</script>
+</body>
+</html>

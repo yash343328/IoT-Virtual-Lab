@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>P2: Smart Home Automation | IoT Lab</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#050a12;--panel:#0a1626;--border:#0e3a6e;--glow:#00d4ff;--glow2:#00ff88;--orange:#ff6b35;--text:#cde4f5;--muted:#4a7a9b;--fm:'Share Tech Mono',monospace;--fb:'Exo 2',sans-serif}
+    body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.04)1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.04)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+    nav{position:relative;z-index:10;display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--border)}
+    nav a{color:var(--muted);text-decoration:none;font-family:var(--fm);font-size:12px;letter-spacing:2px;transition:color .2s}
+    nav a:hover{color:var(--glow)} nav span{color:var(--muted)}
+    .page{max-width:1000px;margin:0 auto;padding:30px 20px 60px;position:relative;z-index:10}
+    .pnum{font-family:var(--fm);font-size:11px;color:var(--glow);letter-spacing:4px;margin-bottom:8px}
+    .page-title{font-size:clamp(1.5rem,4vw,2.4rem);font-weight:800;color:#fff}
+    .page-desc{color:var(--muted);font-size:.9rem;margin-top:8px;line-height:1.6;max-width:600px;margin-bottom:24px}
+    .theory-box{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--glow);border-radius:8px;padding:20px;margin-bottom:28px}
+    .theory-box h3{font-family:var(--fm);color:var(--glow);font-size:12px;letter-spacing:3px;margin-bottom:10px}
+    .theory-box p,.theory-box ul{font-size:.85rem;color:var(--muted);line-height:1.7}
+    .theory-box ul{padding-left:18px;margin-top:8px}
+    .house-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:28px}
+    .device-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all .3s;user-select:none}
+    .device-card.on{border-color:var(--glow2);box-shadow:0 0 20px rgba(0,255,136,.15)}
+    .device-card:hover{transform:translateY(-2px)}
+    .dev-icon{font-size:2.4rem;margin-bottom:10px;filter:grayscale(1);transition:filter .3s}
+    .device-card.on .dev-icon{filter:grayscale(0)}
+    .dev-name{font-size:.85rem;font-weight:600;color:#fff;margin-bottom:6px}
+    .dev-room{font-family:var(--fm);font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:12px}
+    .toggle{width:44px;height:22px;background:#1a2a3a;border-radius:11px;margin:0 auto;position:relative;border:1px solid var(--border);transition:all .3s}
+    .device-card.on .toggle{background:rgba(0,255,136,.3);border-color:var(--glow2)}
+    .toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:all .3s}
+    .device-card.on .toggle::after{left:24px;background:var(--glow2)}
+    .dev-extra{font-family:var(--fm);font-size:10px;color:var(--muted);margin-top:8px;min-height:16px}
+    .device-card.on .dev-extra{color:var(--glow)}
+    .section-title{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:3px;margin-bottom:16px}
+    .energy-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px}
+    .energy-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+    .energy-stat{text-align:center}
+    .energy-val{font-family:var(--fm);font-size:1.8rem;font-weight:bold}
+    .energy-label{font-size:.75rem;color:var(--muted);font-family:var(--fm);letter-spacing:2px}
+    .schedule-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px}
+    .sch-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+    .sch-row select,.sch-row input{background:#020810;border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:var(--fm);font-size:12px}
+    .btn{font-family:var(--fm);font-size:12px;letter-spacing:2px;padding:10px 20px;border-radius:6px;border:1px solid var(--glow);background:transparent;color:var(--glow);cursor:pointer;transition:all .2s}
+    .btn:hover{background:rgba(0,212,255,.1)}
+    .sch-list{font-family:var(--fm);font-size:11px;color:var(--glow2);background:#020810;border:1px solid var(--border);border-radius:6px;padding:10px;min-height:60px;line-height:2}
+    .log-area{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px}
+    .log-box{font-family:var(--fm);font-size:11px;color:var(--glow2);background:#020810;border:1px solid var(--border);border-radius:6px;padding:12px;height:130px;overflow-y:auto;line-height:1.9}
+  </style>
+</head>
+<body>
+<nav><a href="index.html">⬅ HOME</a><span>/</span><a href="#">PRACTICAL 02</a></nav>
+<div class="page">
+  <div class="pnum">PRACTICAL // 02</div>
+  <div class="page-title">💡 Smart Home Automation Dashboard</div>
+  <div class="page-desc">IoT ke through ghar ke devices ko remotely control karo. Har device ek GPIO pin se connected hoti hai — turn ON/OFF karo aur energy consumption monitor karo.</div>
+
+  <div class="theory-box">
+    <h3>📖 THEORY</h3>
+    <p><b>Smart Home Automation</b> mein IoT devices (bulbs, fans, AC, locks) ko internet ke through control kiya jaata hai. Raspberry Pi ya ESP8266 ka use karke GPIO pins se devices ko on/off kiya jaata hai.</p>
+    <ul>
+      <li>GPIO (General Purpose Input/Output) pins ke through relay control</li>
+      <li>MQTT ya HTTP API se commands send hoti hain</li>
+      <li>Scheduling: time-based automation (e.g., lights off at 11pm)</li>
+      <li>Energy monitoring: wattage track karke savings calculate karna</li>
+    </ul>
+  </div>
+
+  <div class="section-title">🏠 HOME DEVICES — Click to Toggle</div>
+  <div class="house-grid" id="deviceGrid"></div>
+
+  <div class="energy-panel">
+    <div class="section-title">⚡ ENERGY MONITOR</div>
+    <div class="energy-row">
+      <div class="energy-stat"><div class="energy-val" id="activeDevs" style="color:var(--glow)">0</div><div class="energy-label">ACTIVE DEVICES</div></div>
+      <div class="energy-stat"><div class="energy-val" id="totalWatts" style="color:var(--orange)">0W</div><div class="energy-label">POWER DRAW</div></div>
+      <div class="energy-stat"><div class="energy-val" id="costPerHr" style="color:var(--glow2)">₹0.00</div><div class="energy-label">COST/HOUR</div></div>
+      <div class="energy-stat"><div class="energy-val" id="dailyCost" style="color:#ff6b35">₹0.00</div><div class="energy-label">DAILY ESTIMATE</div></div>
+    </div>
+  </div>
+
+  <div class="schedule-panel">
+    <div class="section-title">⏰ SCHEDULE AUTOMATION</div>
+    <div class="sch-row">
+      <select id="schDev">
+        <option value="">Select Device</option>
+      </select>
+      <select id="schAction">
+        <option value="on">Turn ON</option>
+        <option value="off">Turn OFF</option>
+      </select>
+      <input type="time" id="schTime" value="22:00"/>
+      <button class="btn" onclick="addSchedule()">+ ADD</button>
+    </div>
+    <div class="sch-list" id="schList">No schedules yet. Add one above.</div>
+  </div>
+
+  <div class="log-area">
+    <div class="section-title">📋 ACTIVITY LOG</div>
+    <div class="log-box" id="logBox">> Smart Home Dashboard loaded<br>> All devices initialized (OFF state)</div>
+  </div>
+</div>
+
+<script>
+  const devices=[
+    {id:0,name:'Living Room Light',room:'LIVING ROOM',icon:'💡',watts:60,pin:'GPIO4'},
+    {id:1,name:'Bedroom Light',room:'BEDROOM',icon:'🔆',watts:40,pin:'GPIO17'},
+    {id:2,name:'Ceiling Fan',room:'HALL',icon:'🌀',watts:75,pin:'GPIO27'},
+    {id:3,name:'Air Conditioner',room:'BEDROOM',icon:'❄️',watts:1500,pin:'GPIO22'},
+    {id:4,name:'TV',room:'LIVING ROOM',icon:'📺',watts:120,pin:'GPIO5'},
+    {id:5,name:'Washing Machine',room:'UTILITY',icon:'🫧',watts:500,pin:'GPIO6'},
+    {id:6,name:'Security Camera',room:'ENTRANCE',icon:'📷',watts:10,pin:'GPIO13'},
+    {id:7,name:'Smart Lock',room:'MAIN DOOR',icon:'🔒',watts:5,pin:'GPIO19'},
+  ];
+  const states=new Array(devices.length).fill(false);
+  const schedules=[];
+
+  function renderDevices(){
+    const grid=document.getElementById('deviceGrid');
+    const sel=document.getElementById('schDev');
+    grid.innerHTML=''; sel.innerHTML='<option value="">Select Device</option>';
+    devices.forEach((d,i)=>{
+      const card=document.createElement('div');
+      card.className='device-card'+(states[i]?' on':'');
+      card.innerHTML=`<div class="dev-icon">${d.icon}</div><div class="dev-name">${d.name}</div><div class="dev-room">${d.room}</div><div class="toggle"></div><div class="dev-extra">${states[i]?d.pin+' HIGH':d.pin+' LOW'}</div>`;
+      card.onclick=()=>toggleDevice(i);
+      grid.appendChild(card);
+      const opt=document.createElement('option'); opt.value=i; opt.textContent=d.name;
+      sel.appendChild(opt);
+    });
+    updateEnergy();
+  }
+
+  function toggleDevice(i){
+    states[i]=!states[i];
+    const d=devices[i];
+    addLog((states[i]?'▶ ON: ':'■ OFF: ')+d.name+' ('+d.pin+')');
+    renderDevices();
+  }
+
+  function updateEnergy(){
+    const active=states.filter(Boolean).length;
+    const watts=devices.reduce((s,d,i)=>s+(states[i]?d.watts:0),0);
+    const rate=8; // ₹8 per unit
+    const costHr=+(watts/1000*rate).toFixed(2);
+    const costDay=+(costHr*24).toFixed(2);
+    document.getElementById('activeDevs').textContent=active;
+    document.getElementById('totalWatts').textContent=watts+'W';
+    document.getElementById('costPerHr').textContent='₹'+costHr;
+    document.getElementById('dailyCost').textContent='₹'+costDay;
+  }
+
+  function addSchedule(){
+    const devIdx=document.getElementById('schDev').value;
+    const action=document.getElementById('schAction').value;
+    const time=document.getElementById('schTime').value;
+    if(!devIdx||!time) return alert('Select device and time!');
+    const d=devices[devIdx];
+    schedules.push({devIdx,action,time,name:d.name});
+    const list=document.getElementById('schList');
+    list.innerHTML=schedules.map(s=>`> ${s.time} → ${s.action.toUpperCase()} "${s.name}"`).join('<br>');
+    addLog('Schedule added: '+time+' → '+action+' '+d.name);
+  }
+
+  function addLog(msg){
+    const logBox=document.getElementById('logBox');
+    const t=new Date().toLocaleTimeString();
+    logBox.innerHTML+='<br>['+t+'] '+msg;
+    logBox.scrollTop=logBox.scrollHeight;
+  }
+
+  renderDevices();
+  // Simulate schedule checking
+  setInterval(()=>{
+    const now=new Date();
+    const cur=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+    schedules.forEach(s=>{
+      if(s.time===cur && !s.fired){
+        s.fired=true;
+        states[s.devIdx]=(s.action==='on');
+        addLog('⏰ SCHEDULE: '+s.action.toUpperCase()+' '+s.name);
+        renderDevices();
+      }
+    });
+  },5000);
+</script>
+</body>
+</html>

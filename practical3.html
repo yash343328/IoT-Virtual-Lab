@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>P3: MQTT Protocol Simulator | IoT Lab</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#050a12;--panel:#0a1626;--border:#0e3a6e;--glow:#00d4ff;--glow2:#00ff88;--orange:#ff6b35;--text:#cde4f5;--muted:#4a7a9b;--fm:'Share Tech Mono',monospace;--fb:'Exo 2',sans-serif}
+    body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.04)1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.04)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+    nav{position:relative;z-index:10;display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--border)}
+    nav a{color:var(--muted);text-decoration:none;font-family:var(--fm);font-size:12px;letter-spacing:2px;transition:color .2s}
+    nav a:hover{color:var(--glow)} nav span{color:var(--muted)}
+    .page{max-width:1000px;margin:0 auto;padding:30px 20px 60px;position:relative;z-index:10}
+    .pnum{font-family:var(--fm);font-size:11px;color:var(--glow);letter-spacing:4px;margin-bottom:8px}
+    .page-title{font-size:clamp(1.5rem,4vw,2.4rem);font-weight:800;color:#fff}
+    .page-desc{color:var(--muted);font-size:.9rem;margin-top:8px;line-height:1.6;max-width:600px;margin-bottom:24px}
+    .theory-box{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--glow);border-radius:8px;padding:20px;margin-bottom:28px}
+    .theory-box h3{font-family:var(--fm);color:var(--glow);font-size:12px;letter-spacing:3px;margin-bottom:10px}
+    .theory-box p,.theory-box ul{font-size:.85rem;color:var(--muted);line-height:1.7}
+    .theory-box ul{padding-left:18px;margin-top:8px}
+    /* MQTT Architecture Diagram */
+    .arch{background:#020810;border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:28px;text-align:center}
+    .arch-title{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:3px;margin-bottom:20px}
+    .arch-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+    .arch-node{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px 16px;text-align:center;min-width:110px}
+    .arch-node .node-icon{font-size:1.8rem;display:block;margin-bottom:4px}
+    .arch-node .node-label{font-family:var(--fm);font-size:10px;color:var(--muted);letter-spacing:2px}
+    .arch-node .node-name{font-size:.78rem;font-weight:600;color:#fff;margin-top:2px}
+    .arch-node.broker{border-color:var(--glow);box-shadow:0 0 15px rgba(0,212,255,.15)}
+    .arch-arrow{font-size:1.4rem;color:var(--glow);animation:blink 1.5s infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+    /* Two-column layout */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+    @media(max-width:640px){.two-col{grid-template-columns:1fr}}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px}
+    .panel-title{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:3px;margin-bottom:16px}
+    .field-row{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+    .field-row label{font-size:.78rem;color:var(--muted)}
+    .field-row input,.field-row select,.field-row textarea{background:#020810;border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:var(--fm);font-size:12px;width:100%}
+    .field-row textarea{height:60px;resize:vertical}
+    .btn{font-family:var(--fm);font-size:12px;letter-spacing:2px;padding:10px 20px;border-radius:6px;border:1px solid var(--glow);background:transparent;color:var(--glow);cursor:pointer;transition:all .2s;width:100%}
+    .btn:hover{background:rgba(0,212,255,.1)}
+    .btn-green{border-color:var(--glow2);color:var(--glow2)} .btn-green:hover{background:rgba(0,255,136,.1)}
+    .sub-list{margin-top:10px;font-family:var(--fm);font-size:11px;line-height:2}
+    .sub-item{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:#020810;border-radius:4px;margin-bottom:4px}
+    .sub-item .topic-name{color:var(--glow2)} .sub-item .unsub{cursor:pointer;color:var(--muted);font-size:10px}
+    .sub-item .unsub:hover{color:#ff3860}
+    /* Broker / Message flow */
+    .broker-area{background:var(--panel);border:1px solid var(--glow);border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 0 20px rgba(0,212,255,.08)}
+    .broker-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .broker-label{font-family:var(--fm);font-size:11px;color:var(--glow);letter-spacing:3px}
+    .broker-status{font-family:var(--fm);font-size:10px;padding:3px 10px;border-radius:20px;background:rgba(0,255,136,.1);color:var(--glow2);border:1px solid rgba(0,255,136,.3)}
+    .msg-stream{font-family:var(--fm);font-size:11px;background:#020810;border:1px solid var(--border);border-radius:6px;padding:12px;height:200px;overflow-y:auto;line-height:1.9}
+    .msg-pub{color:var(--orange)} .msg-del{color:var(--glow2)} .msg-sys{color:var(--muted)}
+    /* Topics */
+    .topics-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+    .topic-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid rgba(14,58,110,.4);font-family:var(--fm);font-size:11px}
+    .topic-row:last-child{border-bottom:none}
+    .topic-row .tn{color:var(--glow)} .topic-row .tc{color:var(--muted)} .topic-row .tl{color:var(--glow2)}
+  </style>
+</head>
+<body>
+<nav><a href="index.html">⬅ HOME</a><span>/</span><a href="#">PRACTICAL 03</a></nav>
+<div class="page">
+  <div class="pnum">PRACTICAL // 03</div>
+  <div class="page-title">📡 MQTT Protocol Simulator</div>
+  <div class="page-desc">MQTT (Message Queuing Telemetry Transport) IoT ka backbone protocol hai. Ye lightweight publish-subscribe model use karta hai. Is simulator mein Publisher aur Subscriber bano aur Broker ke through messages dekho.</div>
+
+  <div class="theory-box">
+    <h3>📖 THEORY</h3>
+    <p><b>MQTT</b> ek lightweight messaging protocol hai jo IoT devices ke beech communication ke liye use hota hai. 3 main components hain:</p>
+    <ul>
+      <li><b>Publisher:</b> Data bhejne waala device (e.g., temperature sensor)</li>
+      <li><b>Broker:</b> Message routing server (e.g., Mosquitto, HiveMQ)</li>
+      <li><b>Subscriber:</b> Data receive karne waala device (e.g., dashboard)</li>
+      <li><b>Topic:</b> Message ka address (e.g., home/bedroom/temp)</li>
+      <li><b>QoS (Quality of Service):</b> 0=At most once, 1=At least once, 2=Exactly once</li>
+    </ul>
+  </div>
+
+  <div class="arch">
+    <div class="arch-title">MQTT ARCHITECTURE</div>
+    <div class="arch-row">
+      <div class="arch-node">
+        <span class="node-icon">🌡️</span>
+        <div class="node-label">PUBLISHER</div>
+        <div class="node-name">Sensor Device</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node broker">
+        <span class="node-icon">📡</span>
+        <div class="node-label">BROKER</div>
+        <div class="node-name">Mosquitto Server</div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node">
+        <span class="node-icon">💻</span>
+        <div class="node-label">SUBSCRIBER</div>
+        <div class="node-name">Dashboard</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <!-- PUBLISHER -->
+    <div class="panel">
+      <div class="panel-title">📤 PUBLISHER</div>
+      <div class="field-row">
+        <label>Topic</label>
+        <input type="text" id="pubTopic" value="home/livingroom/temperature" placeholder="topic/path"/>
+      </div>
+      <div class="field-row">
+        <label>Message / Payload</label>
+        <textarea id="pubMsg">{"temperature": 28.5, "unit": "celsius"}</textarea>
+      </div>
+      <div class="field-row">
+        <label>QoS Level</label>
+        <select id="pubQos">
+          <option value="0">QoS 0 — At most once (Fire & Forget)</option>
+          <option value="1" selected>QoS 1 — At least once</option>
+          <option value="2">QoS 2 — Exactly once</option>
+        </select>
+      </div>
+      <button class="btn" onclick="publish()">📤 PUBLISH MESSAGE</button>
+      <div style="margin-top:12px">
+        <button class="btn" style="font-size:10px;padding:6px 10px" onclick="startAutoPub()">▶ AUTO PUBLISH</button>
+        &nbsp;
+        <button class="btn btn-green" style="font-size:10px;padding:6px 10px" onclick="stopAutoPub()">■ STOP</button>
+      </div>
+    </div>
+
+    <!-- SUBSCRIBER -->
+    <div class="panel">
+      <div class="panel-title">📥 SUBSCRIBER</div>
+      <div class="field-row">
+        <label>Subscribe to Topic (wildcards: # and +)</label>
+        <input type="text" id="subTopic" value="home/#" placeholder="topic or wildcard"/>
+      </div>
+      <button class="btn btn-green" onclick="subscribe()">📥 SUBSCRIBE</button>
+      <div class="sub-list" id="subList">
+        <div style="color:var(--muted);font-size:11px">No active subscriptions</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BROKER -->
+  <div class="broker-area">
+    <div class="broker-header">
+      <span class="broker-label">📡 BROKER — MOSQUITTO v2.0 (simulated)</span>
+      <span class="broker-status">● ONLINE</span>
+    </div>
+    <div class="msg-stream" id="msgStream">
+      <span class="msg-sys">[BROKER] Simulation started. Broker online at mqtt://localhost:1883</span><br>
+      <span class="msg-sys">[BROKER] Waiting for publishers and subscribers...</span><br>
+    </div>
+  </div>
+
+  <!-- TOPIC STATS -->
+  <div class="topics-panel">
+    <div class="panel-title">📊 ACTIVE TOPICS</div>
+    <div id="topicsTable">
+      <div style="color:var(--muted);font-family:var(--fm);font-size:11px">No messages published yet.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const subscriptions=[];
+  const topicStats={};
+  let autoTimer=null;
+
+  function brokerLog(msg, type='sys'){
+    const s=document.getElementById('msgStream');
+    const span=document.createElement('span');
+    span.className='msg-'+type;
+    const t=new Date().toLocaleTimeString();
+    span.textContent='['+t+'] '+msg;
+    s.appendChild(span);
+    s.appendChild(document.createElement('br'));
+    s.scrollTop=s.scrollHeight;
+  }
+
+  function topicMatches(pattern, topic){
+    if(pattern===topic) return true;
+    if(pattern.endsWith('#')){
+      const base=pattern.slice(0,-1);
+      return topic.startsWith(base);
+    }
+    const pParts=pattern.split('/');
+    const tParts=topic.split('/');
+    if(pParts.length!==tParts.length) return false;
+    return pParts.every((p,i)=>p==='+'||p===tParts[i]);
+  }
+
+  function publish(){
+    const topic=document.getElementById('pubTopic').value.trim();
+    const msg=document.getElementById('pubMsg').value.trim();
+    const qos=document.getElementById('pubQos').value;
+    if(!topic||!msg) return;
+    brokerLog('PUBLISH → topic="'+topic+'" QoS='+qos+' payload='+msg,'pub');
+    // update topic stats
+    if(!topicStats[topic]) topicStats[topic]={count:0,last:''};
+    topicStats[topic].count++;
+    topicStats[topic].last=msg;
+    renderTopics();
+    // deliver to matching subscribers
+    let delivered=0;
+    subscriptions.forEach(sub=>{
+      if(topicMatches(sub,topic)){
+        brokerLog('DELIVER → subscriber:"'+sub+'" ← "'+msg+'"','del');
+        delivered++;
+      }
+    });
+    if(delivered===0) brokerLog('No subscribers for topic: '+topic,'sys');
+  }
+
+  function subscribe(){
+    const t=document.getElementById('subTopic').value.trim();
+    if(!t) return;
+    if(subscriptions.includes(t)) return brokerLog('Already subscribed to: '+t,'sys');
+    subscriptions.push(t);
+    brokerLog('SUBSCRIBE → filter="'+t+'"','del');
+    renderSubs();
+  }
+
+  function renderSubs(){
+    const el=document.getElementById('subList');
+    if(!subscriptions.length){el.innerHTML='<div style="color:var(--muted);font-size:11px">No active subscriptions</div>';return;}
+    el.innerHTML=subscriptions.map((s,i)=>
+      `<div class="sub-item"><span class="topic-name">📥 ${s}</span><span class="unsub" onclick="unsub(${i})">✕ unsub</span></div>`
+    ).join('');
+  }
+
+  function unsub(i){
+    const t=subscriptions[i];
+    subscriptions.splice(i,1);
+    brokerLog('UNSUBSCRIBE → "'+t+'"','sys');
+    renderSubs();
+  }
+
+  function renderTopics(){
+    const el=document.getElementById('topicsTable');
+    const keys=Object.keys(topicStats);
+    if(!keys.length) return;
+    el.innerHTML='<div class="topic-row" style="color:var(--muted);font-size:10px"><span>TOPIC</span><span>MESSAGES</span><span>LAST PAYLOAD</span></div>'+
+      keys.map(k=>`<div class="topic-row"><span class="tn">${k}</span><span class="tc">${topicStats[k].count}</span><span class="tl" style="max-width:180px;overflow:hidden;text-overflow:ellipsis">${topicStats[k].last.substring(0,40)}</span></div>`).join('');
+  }
+
+  const autoTopics=[
+    {topic:'home/livingroom/temperature', gen:()=>`{"temperature":${(22+Math.random()*8).toFixed(1)},"unit":"celsius"}`},
+    {topic:'home/bedroom/humidity', gen:()=>`{"humidity":${(40+Math.random()*30).toFixed(0)},"unit":"%"}`},
+    {topic:'factory/machine1/rpm', gen:()=>`{"rpm":${Math.floor(1200+Math.random()*800)},"status":"running"}`},
+    {topic:'weather/outdoor/pressure', gen:()=>`{"pressure":${(1010+Math.random()*15).toFixed(1)},"unit":"hPa"}`},
+  ];
+  let autoIdx=0;
+  function startAutoPub(){
+    if(autoTimer) return;
+    autoTimer=setInterval(()=>{
+      const t=autoTopics[autoIdx%autoTopics.length];
+      document.getElementById('pubTopic').value=t.topic;
+      document.getElementById('pubMsg').value=t.gen();
+      publish();
+      autoIdx++;
+    },1500);
+  }
+  function stopAutoPub(){ clearInterval(autoTimer); autoTimer=null; }
+</script>
+</body>
+</html>
